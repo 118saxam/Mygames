@@ -41,6 +41,18 @@
             background-color: #26a69a;
         }
     </style>
+    <!-- Link to the manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Register the Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // Replace YOUR_REPO_NAME with your repo name
+      navigator.serviceWorker.register('/YOUR_REPO_NAME/sw.js');
+    });
+  }
+</script>
 </head>
 <body>
     <div class="container">
