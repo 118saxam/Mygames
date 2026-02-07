@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peripheral Vision Grid</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f4f7f6;
+            --text: #333;
+            --danger: #e74c3c;
+            --grid-size: 3; /* Default variable for CSS Grid */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        /* Controls Section */
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        select, button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button.primary {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            font-weight: bold;
+        }
+
+        button.primary:hover { opacity: 0.9; }
+        button.secondary { background-color: transparent; color: var(--primary); }
+
+        .timer-display {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        /* The Grid */
+        #game-grid {
+            display: grid;
+            grid-template-columns: repeat(var(--grid-size), 1fr);
+            gap: 10px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            user-select: none;
+            margin-bottom: 20px;
+            /* Max width constraints to keep it viewable without scrolling */
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+        }
+
+        .grid-cell {
+            background-color: #eee;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+            color: var(--text);
+        }
+
+        /* Active state for click feel, but no permanent change */
+        .grid-cell:active {
+            background-color: #ccc;
+            transform: scale(0.95);
+        }
+
+        /* Records Section */
+        #records-section {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: none; /* Hidden by default */
+        }
+
+        #records-section.visible { display: block; }
+
+        .records-header {
+            background: var(--primary);
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .records-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .records-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .modal h2 { margin-top: 0; }
+        .modal.win h2 { color: var(--accent); }
+        .modal.lose h2 { color: var(--danger); }
+
+    </style>
+</head>
+<body>
+
+    <h1>Vision Grid</h1>
+
+    <div class="timer-display" id="timer">00:00:00</div>
+
+    <div class="controls">
+        <select id="grid-size-selector">
+            <option value="3">3 x 3</option>
+            <option value="4" selected>4 x 4</option>
+            <option value="5">5 x 5</option>
+            <option value="6">6 x 6</option>
+        </select>
+        <button class="primary" onclick="startGame()">Start Game</button>
+        <button class="secondary" onclick="toggleRecords()">Toggle Records</button>
+    </div>
+
+    <div id="game-grid">
+        <!-- Grid generates here -->
+        <div style="grid-column: 1/-1; text-align: center; color: #888; padding: 20px;">
+            Select size and click Start
+        </div>
+    </div>
+
+    <div id="records-section">
+        <div class="records-header">
+            <strong>Past Records</strong>
+            <button onclick="clearRecords()" style="padding: 2px 8px; font-size: 12px;">Clear</button>
+        </div>
+        <ul class="records-list" id="records-list"></ul>
+    </div>
+
+    <!-- Game Over / Win Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal-content">
+            <h2 id="modal-title"></h2>
+            <p id="modal-message"></p>
+            <button class="primary" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State Variables
+        let currentSize = 4;
+        let numbers = [];
+        let expectedNumber = 1;
+        let wrongClicks = 0;
+        let isGameRunning = false;
+        let startTime = 0;
+        let timerInterval = null;
+        const maxMistakes = 3;
+
+        // DOM Elements
+        const gridEl = document.getElementById('game-grid');
+        const timerEl = document.getElementById('timer');
+        const sizeSelect = document.getElementById('grid-size-selector');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalContent = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMsg = document.getElementById('modal-message');
+        const recordsSection = document.getElementById('records-section');
+        const recordsList = document.getElementById('records-list');
+
+        // Initialization
+        renderRecords();
+
+        function startGame() {
+            // Reset State
+            stopTimer();
+            isGameRunning = true;
+            expectedNumber = 1;
+            wrongClicks = 0;
+            currentSize = parseInt(sizeSelect.value);
+            
+            // Generate Grid
+            generateGrid(currentSize);
+            
+            // Start Timer
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 10);
+        }
+
+        function generateGrid(n) {
+            // Clear grid
+            gridEl.innerHTML = '';
+            
+            // Set CSS Grid styling
+            document.documentElement.style.setProperty('--grid-size', n);
+
+            // Create numbers array [1...n^2]
+            const totalCells = n * n;
+            let nums = Array.from({length: totalCells}, (_, i) => i + 1);
+            
+            // Shuffle (Fisher-Yates)
+            for (let i = nums.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [nums[i], nums[j]] = [nums[j], nums[i]];
+            }
+
+            // Create Buttons
+            nums.forEach(num => {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.textContent = num;
+                // Add click listener
+                cell.addEventListener('mousedown', () => handleInput(num)); // using mousedown for instant reaction
+                gridEl.appendChild(cell);
+            });
+        }
+
+        function handleInput(clickedNum) {
+            if (!isGameRunning) return;
+
+            // Core Logic
+            if (clickedNum === expectedNumber) {
+                // Correct
+                expectedNumber++;
+                
+                // Win Condition
+                const maxNum = currentSize * currentSize;
+                if (expectedNumber > maxNum) {
+                    finishGame(true);
+                }
+            } else {
+                // Incorrect
+                wrongClicks++;
+                
+                // Loss Condition
+                if (wrongClicks > maxMistakes) {
+                    finishGame(false);
+                }
+            }
+            
+            // NO VISUAL FEEDBACK to the user as per requirement
+            // The DOM element remains exactly the same.
+        }
+
+        function updateTimer() {
+            const now = Date.now();
+            const elapsed = now - startTime;
+            timerEl.textContent = formatTime(elapsed);
+        }
+
+        function formatTime(ms) {
+            const date = new Date(ms);
+            const m = date.getUTCMinutes().toString().padStart(2, '0');
+            const s = date.getUTCSeconds().toString().padStart(2, '0');
+            const mls = Math.floor(date.getUTCMilliseconds() / 10).toString().padStart(2, '0');
+            return `${m}:${s}:${mls}`;
+        }
+
+        function finishGame(won) {
+            isGameRunning = false;
+            stopTimer();
+            const finalTime = timerEl.textContent;
+
+            modalOverlay.style.display = 'flex';
+            modalContent.className = won ? 'modal win' : 'modal lose';
+
+            if (won) {
+                modalTitle.textContent = "Success!";
+                modalMsg.textContent = `Time: ${finalTime} (${currentSize}x${currentSize})`;
+                saveRecord(currentSize, finalTime);
+            } else {
+                modalTitle.textContent = "Game Over";
+                modalMsg.textContent = "You made more than 3 mistakes.";
+            }
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerEl.textContent = "00:00:00";
+        }
+
+        function closeModal() {
+            modalOverlay.style.display = 'none';
+        }
+
+        // --- Records System ---
+
+        function toggleRecords() {
+            recordsSection.classList.toggle('visible');
+        }
+
+        function saveRecord(size, timeStr) {
+            const record = {
+                date: new Date().toLocaleString(),
+                size: `${size}x${size}`,
+                time: timeStr
+            };
+            
+            let history = JSON.parse(localStorage.getItem('visionGridRecords')) || [];
+            history.unshift(record); // Add to top
+            // Keep only last 20
+            if (history.length > 20) history.pop();
+            
+            localStorage.setItem('visionGridRecords', JSON.stringify(history));
+            renderRecords();
+        }
+
+        function renderRecords() {
+            const history = JSON.parse(localStorage.getItem('visionGridRecords')) || [];
+            recordsList.innerHTML = '';
+            
+            if (history.length === 0) {
+                recordsList.innerHTML = '<li style="justify-content:center; color:#888;">No records yet</li>';
+                return;
+            }
+
+            history.forEach(rec => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${rec.size} - ${rec.time}</span> <span style="font-size:0.8em; color:#888;">${rec.date}</span>`;
+                recordsList.appendChild(li);
+            });
+        }
+
+        function clearRecords() {
+            localStorage.removeItem('visionGridRecords');
+            renderRecords();
+        }
+
+    </script>
+</body>
+</html>
